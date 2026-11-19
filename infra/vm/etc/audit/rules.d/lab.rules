@@ -1,0 +1,4 @@
+# Theo dõi truy cập (đọc, ghi, đổi thuộc tính) vào 2 file nhạy cảm.
+# Xem log: sudo ausearch -k shadow_access -i
+-w /etc/passwd -p rwa -k passwd_access
+-w /etc/shadow -p rwa -k shadow_access

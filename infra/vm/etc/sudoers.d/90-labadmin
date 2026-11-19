@@ -1,0 +1,3 @@
+# Nhóm labadmin được sudo không cần mật khẩu (user chỉ đăng nhập bằng khóa SSH nên không có mật khẩu).
+# Đánh đổi: ai chiếm được khóa của một thành viên có quyền root ngay. Ghi vào báo cáo.
+%labadmin ALL=(ALL) NOPASSWD:ALL

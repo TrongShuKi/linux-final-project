@@ -1,0 +1,4 @@
+# TÙY CHỌN: ghi mọi lệnh chạy bằng quyền root kèm auid (người đăng nhập gốc).
+# Cài bằng: install-auditd.sh -x. Log tăng nhanh, theo dõi dung lượng /var/log/audit.
+# Xem: sudo ausearch -k root_cmds -ul $(id -u <user>) -i
+-a always,exit -F arch=b64 -S execve -F euid=0 -k root_cmds

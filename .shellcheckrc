@@ -1,0 +1,3 @@
+# Cấu hình shellcheck cho cả repo: theo dõi file được source, tìm theo thư mục của script.
+external-sources=true
+source-path=SCRIPTDIR

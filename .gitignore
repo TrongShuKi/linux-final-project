@@ -1,0 +1,11 @@
+# Bí mật và khóa: KHÔNG BAO GIỜ commit
+infra/gcp/env.sh
+.env
+*.pem
+*.key
+id_rsa*
+id_ed25519
+id_ed25519_*
+!*.pub
+*.bak
+*.tar.gz
