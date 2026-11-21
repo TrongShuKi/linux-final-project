@@ -1,0 +1,7 @@
+[sshd]
+enabled  = true
+port     = 22,2222
+maxretry = 3
+findtime = 10m
+bantime  = 10m
+ignoreip = 127.0.0.1/8

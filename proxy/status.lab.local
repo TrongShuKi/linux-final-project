@@ -1,0 +1,24 @@
+server {
+    listen 80;
+    server_name status.lab.local;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name status.lab.local;
+
+    ssl_certificate     /etc/ssl/certs/lab-selfsigned.crt;
+    ssl_certificate_key /etc/ssl/private/lab-selfsigned.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+
+    root /var/www/status.lab.local;
+    index index.html;
+
+    access_log /var/log/nginx/status.access.log;
+    error_log  /var/log/nginx/status.error.log;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}
