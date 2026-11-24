@@ -9,3 +9,8 @@ id_ed25519_*
 !*.pub
 *.bak
 *.tar.gz
+
+# TV3 - app Python
+venv/
+__pycache__/
+*.pyc

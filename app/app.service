@@ -1,0 +1,16 @@
+[Unit]
+Description=App do an Linux
+After=network.target
+
+[Service]
+Type=simple
+User=appuser
+WorkingDirectory=/opt/app
+EnvironmentFile=/opt/app/.env
+ExecStart=/opt/app/venv/bin/python /opt/app/app.py
+Restart=on-failure
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
