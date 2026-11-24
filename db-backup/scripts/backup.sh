@@ -13,7 +13,7 @@ set -Eeuo pipefail
 SCRIPT_NAME="$(basename "$0")"
 
 # ---- Hằng số & Giá trị mặc định ----
-LOG_FILE="/var/log/labapp/backup.log"
+LOG_FILE="${LOG_FILE:-/var/log/labapp/backup.log}"
 
 ENV_FILE="/etc/labapp/db.env"
 WEB_DIR="/srv/data"
@@ -40,7 +40,9 @@ log() {
     local msg
     msg="$(date '+%Y-%m-%d %H:%M:%S') [${SCRIPT_NAME}] $*"
     printf '%s\n' "${msg}"
-    if [[ -d "$(dirname "${LOG_FILE}")" ]]; then
+    if [[ -d "$(dirname "${LOG_FILE}")" && -w "$(dirname "${LOG_FILE}")" ]]; then
+        printf '%s\n' "${msg}" >> "${LOG_FILE}" 2>/dev/null || true
+    elif [[ -f "${LOG_FILE}" && -w "${LOG_FILE}" ]]; then
         printf '%s\n' "${msg}" >> "${LOG_FILE}" 2>/dev/null || true
     fi
 }
