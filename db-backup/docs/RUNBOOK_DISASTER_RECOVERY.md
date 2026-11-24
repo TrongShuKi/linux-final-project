@@ -48,7 +48,7 @@ Mọi thành phần trong chuỗi sao lưu được phân quyền chặt chẽ:
 |---|---|---|
 | PostgreSQL Role `appuser` (TV3) | Chỉ cấp `CONNECT` trên DB `appdb`, `USAGE/CREATE` trên schema `public` | Thu hồi toàn bộ quyền superuser; ngăn chặn đọc/ghi chéo các database khác (`labapp`, `postgres`) |
 | PostgreSQL Role `labapp_user` | Chỉ cấp `CONNECT` trên DB `labapp`, `USAGE/CREATE` trên schema `public` | Cách ly hoàn toàn giữa 2 database trên cùng cụm |
-| File cấu hình `/etc/labapp/db.env` | Owner `appuser:appuser` (hoặc `root:root`), quyền `chmod 600` | Chỉ user được phân quyền đọc được; ngăn người dùng không đặc quyền đọc trộm mật khẩu DB |
+| File cấu hình `/etc/labapp/db.env` | Owner `root:root`, quyền `chmod 600` | Ngăn chặn web app hoặc user không đặc quyền đọc trộm mật khẩu DB; chống leo thang đặc quyền (Privilege Escalation) |
 | Thư mục `/var/backups/labapp` | Owner `root:root`, quyền `chmod 700` | Ngăn chặn các tiến trình/user khác đọc trộm dữ liệu dump |
 | User `backup` trên `lab-bkp` | Không cấp quyền `sudo`, shell `/bin/bash` gắn forced-command | Chỉ dùng làm tài khoản nhận và dọn dẹp dữ liệu theo whitelist |
 | Thư mục `/srv/backup` | Owner `backup:backup`, quyền `chmod 750` | Cách ly hoàn toàn dữ liệu sao lưu trên máy chủ lưu trữ |
@@ -173,7 +173,7 @@ Toàn bộ các bằng chứng dưới đây đã được kiểm chứng và đ
   - Database `labapp` cũ chứa 3 bản ghi lịch sử, hoàn toàn không bị ảnh hưởng hay ghi đè khi restore `appdb`.
 - [x] **E8 — An toàn Mạng & Đặc quyền tối thiểu:**
   - Cổng PostgreSQL 5432 chỉ lắng nghe duy nhất trên `127.0.0.1`.
-  - File `/etc/labapp/db.env` phân quyền `chmod 600 appuser:appuser`.
+  - File `/etc/labapp/db.env` phân quyền `chmod 600 root:root` (bảo vệ tuyệt đối secret và ngăn ngừa Privilege Escalation).
   - Quyền các script quản trị trong `/usr/local/bin/` phân quyền `chmod 750 root:root`.
 
 ---
