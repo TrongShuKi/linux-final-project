@@ -1,0 +1,16 @@
+[Unit]
+Description=Labapp daily database and web backup
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/labapp/db-backup/scripts/backup.sh
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=labapp-backup
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/backups/labapp /var/log/labapp /tmp
+PrivateTmp=yes
+

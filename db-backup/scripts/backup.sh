@@ -24,6 +24,7 @@ BKP_PATH="/srv/backup"
 MIN_FREE_MB=100
 DRY_RUN=false
 ARCHIVE_OK=false
+SSH_KEY="/etc/labapp/.ssh/id_ed25519"
 
 TMP_DIR=""
 ARCHIVE_PATH=""
@@ -165,8 +166,13 @@ check_disk_space() {
     local required_bytes
     required_bytes=$(( (db_bytes * 2) + web_bytes + (MIN_FREE_MB * 1048576) ))
 
+    local check_dir="${OUT_DIR}"
+    while [[ ! -d "${check_dir}" && "${check_dir}" != "/" ]]; do
+        check_dir="$(dirname "${check_dir}")"
+    done
+
     local available_bytes
-    available_bytes="$(df -B1 --output=avail "${OUT_DIR}" 2>/dev/null | tail -n 1 | tr -d ' ' || echo 0)"
+    available_bytes="$(df -B1 --output=avail "${check_dir}" 2>/dev/null | tail -n 1 | tr -d ' ' || echo 0)"
     available_bytes="${available_bytes:-0}"
 
     log "Kiểm tra đĩa: Khả dụng=${available_bytes} bytes, Yêu cầu ước tính=${required_bytes} bytes (DB=${db_bytes}, Web=${web_bytes}, Dự phòng=${MIN_FREE_MB}MB)"
@@ -186,7 +192,7 @@ dump_database() {
     log "Bắt đầu pg_dump database '${DB_NAME}' vào ${TMP_DIR}/db.sql..."
     PGPASSWORD="${DB_PASSWORD}" pg_dump \
         -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" \
-        --no-password -Fp -f "${TMP_DIR}/db.sql" "${DB_NAME}"
+        --no-password --clean --if-exists --no-owner --no-acl -Fp -f "${TMP_DIR}/db.sql" "${DB_NAME}"
 
     local dump_size
     dump_size="$(du -sh "${TMP_DIR}/db.sql" 2>/dev/null | awk '{print $1}' || echo "N/A")"
@@ -221,8 +227,12 @@ bundle_archive() {
 # ---- Hàm đồng bộ archive sang máy chủ backup qua rsync/SSH ----
 sync_to_remote() {
     log "Bắt đầu rsync ${ARCHIVE_PATH} → ${BKP_HOST}:${BKP_PATH}"
+    local ssh_opts=(-o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new)
+    if [[ -f "${SSH_KEY}" ]]; then
+        ssh_opts+=(-i "${SSH_KEY}")
+    fi
     if ! rsync -avz \
-            -e "ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new" \
+            -e "ssh ${ssh_opts[*]}" \
             "${ARCHIVE_PATH}" \
             "backup@${BKP_HOST}:${BKP_PATH}/"; then
         die "rsync thất bại — bản backup local được giữ nguyên tại ${ARCHIVE_PATH}"
@@ -244,23 +254,15 @@ enforce_retention() {
         log "Không có backup local cũ cần xóa."
     fi
 
-    # Ghi chú: Sử dụng bash -s với heredoc nháy đơn để tránh shell cục bộ expand biến,
-    # truyền BKP_PATH và DAYS qua tham số vị trí ($1, $2) cho bash từ xa.
+    # Sử dụng lệnh an toàn prune-backups:<DAYS> qua forced-command wrapper,
+    # cấm hoàn toàn bash -s và truyền script qua stdin nhằm triệt tiêu lỗ hổng RCE.
     log "Kiểm tra retention remote (lưu ${DAYS} ngày) trên ${BKP_HOST}:${BKP_PATH}..."
-    if ! ssh -o BatchMode=yes \
-            -o ConnectTimeout=10 \
-            -o StrictHostKeyChecking=accept-new \
-            "backup@${BKP_HOST}" bash -s -- "${BKP_PATH}" "${DAYS}" <<'REMOTE_SCRIPT'
-set -euo pipefail
-dir="$1"
-days="$2"
-find "${dir}" -maxdepth 1 -name 'backup_*.tar.gz' -mtime "+${days}" -print0 \
-    | while IFS= read -r -d '' f; do
-        echo "XOA REMOTE: ${f}"
-        rm -f -- "${f}"
-    done
-REMOTE_SCRIPT
-    then
+    local ssh_opts=(-n -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new)
+    if [[ -f "${SSH_KEY}" ]]; then
+        ssh_opts+=(-i "${SSH_KEY}")
+    fi
+    # shellcheck disable=SC2029
+    if ! ssh "${ssh_opts[@]}" "backup@${BKP_HOST}" "prune-backups:${DAYS}"; then
         log "CẢNH BÁO: retention remote trên ${BKP_HOST}:${BKP_PATH} thất bại, bỏ qua lần này — bản backup vẫn an toàn ở cả 2 nơi."
     fi
 }

@@ -102,13 +102,12 @@ echo "[stub rsync] OK: $*"
 exit 0
 SH
 
-    # ssh stub: thành công, có ghi nhận stdin và tham số vào SSH_CAPTURE_LOG nếu được set
+    # ssh stub: thành công, có ghi nhận tham số vào SSH_CAPTURE_LOG nếu được set
     cat > "${stub_dir}/ssh" <<'SH'
 #!/usr/bin/env bash
 echo "[stub ssh] OK: $*"
 if [[ -n "${SSH_CAPTURE_LOG:-}" ]]; then
     echo "ARGS: $*" >> "${SSH_CAPTURE_LOG}"
-    cat >> "${SSH_CAPTURE_LOG}"
 fi
 exit 0
 SH
@@ -396,9 +395,9 @@ fi
 rm -rf "${sb}"
 
 # ---------------------------------------------------------------------------
-# T14: Retention remote truyền đúng tham số BKP_PATH và DAYS cho bash -s qua SSH
+# T14: Retention remote gửi đúng lệnh prune-backups:<DAYS> qua SSH
 # ---------------------------------------------------------------------------
-echo "T14: Retention remote truyền đúng tham số BKP_PATH và DAYS cho bash -s"
+echo "T14: Retention remote gửi đúng lệnh prune-backups:<DAYS> qua SSH"
 sb="$(make_sandbox)"
 stubs="${sb}/stubs"; make_stubs_success "${stubs}"
 ssh_log="${sb}/ssh_capture.log"
@@ -411,12 +410,11 @@ SSH_CAPTURE_LOG="${ssh_log}" PATH="${stubs}:${PATH}" "${BACKUP_SCRIPT}" \
     2>/dev/null ; rc=$?
 if [[ ${rc} -eq 0 && -f "${ssh_log}" ]]; then
     log_content="$(cat "${ssh_log}")"
-    if [[ "${log_content}" == *"bash -s -- ${sb}/srv/backup 14"* && \
-          "${log_content}" == *"find \"\${dir}\" -maxdepth 1"* && \
-          "${log_content}" == *"rm -f -- \"\${f}\""* ]]; then
+    if [[ "${log_content}" == *"prune-backups:14"* && \
+          "${log_content}" != *"bash -s"* ]]; then
         pass "T14"
     else
-        fail "T14: Lệnh SSH remote không chứa đúng bash -s hoặc heredoc find/rm"
+        fail "T14: Lệnh SSH remote không chứa đúng prune-backups:14 hoặc vẫn dùng bash -s"
     fi
 else
     fail "T14: rc=${rc}, ssh_log không tồn tại"

@@ -1,0 +1,11 @@
+[Unit]
+Description=Run labapp backup daily at 02:00
+
+[Timer]
+OnCalendar=*-*-* 02:00:00
+Persistent=true
+Unit=labapp-backup.service
+
+[Install]
+WantedBy=timers.target
+
